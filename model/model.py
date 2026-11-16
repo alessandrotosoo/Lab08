@@ -26,6 +26,14 @@ class Model:
         :return: lista di tuple --> (nome del distributore, media), es. (Distributore A, 1.789)
         """
         # TODO
+        risultati = []
+        for distributore in self._distributori:
+            prezzi = distributore.get_prezzi()
+            prezzi_mese = [p.prezzo_litro for p in prezzi if p.data.month == mese]
+            if len(prezzi_mese) > 0:
+                media = sum(prezzi_mese) / len(prezzi_mese)
+                risultati.append((distributore.nome, media))
+        return risultati
 
     def get_sequenza_ottima(self, mese:int):
         """
@@ -47,6 +55,23 @@ class Model:
     def __ricorsione(self, sequenza_parziale, giorno, ultimo_distributore, costo_corrente, prezzi_settimana):
         """ Implementa la ricorsione """
         # TODO
+        if giorno > 7:
+            if self.__costo_ottimo == -1 or costo_corrente < self.__costo_ottimo:
+                self.__costo_ottimo = costo_corrente
+                self.__sequenza_ottima = list(sequenza_parziale)
+            return
+
+        for id_distributore, prezzi in prezzi_settimana.items():
+            costo_carburante = prezzi[giorno - 1] * 100
+            costo_spostamento = 5 if (ultimo_distributore is not None and ultimo_distributore != id_distributore) else 0
+            nuovo_costo = costo_corrente + costo_carburante + costo_spostamento
+
+            sequenza_parziale.append(id_distributore)
+
+            if self.__costo_ottimo == -1 or nuovo_costo < self.__costo_ottimo:
+                self.__ricorsione(sequenza_parziale, giorno + 1, id_distributore, nuovo_costo, prezzi_settimana)
+            sequenza_parziale.pop()
+
 
     def __get_prezzi_prima_settimana_mese(self, mese: int):
         """
@@ -54,3 +79,10 @@ class Model:
         :return: un dizionario: {id_distributore: [prezzo_giorno1, ..., prezzo_giorno7]}
         """
         # TODO
+        prezzi_settimana = {}
+        for distributore in self._distributori:
+            prezzi = distributore.get_prezzi()
+            prezzi_7_giorni = [p for p in prezzi if p.data.month == mese and p.data.day <= 7]
+            prezzi_7_giorni.sort(key=lambda p: p.data)
+            prezzi_settimana[distributore.id] = [p.prezzo_litro for p in prezzi_7_giorni]
+        return prezzi_settimana
